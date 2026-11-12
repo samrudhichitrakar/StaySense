@@ -2,7 +2,7 @@
 
 Analysis of ~87K hotel bookings to find **where revenue is tied up in cancellations, when cancellations happen, and how a hotel could plan overbooking.**
 
-**Tools:** Python (Pandas) | MySQL 8 | Power BI (dashboard in progress)
+**Tools:** Python (Pandas) | MySQL 8 | Power BI
 **Dataset:** [Hotel Booking Demand](https://www.kaggle.com/datasets/jessemostipak/hotel-booking-demand) (Kaggle), bookings for a City Hotel and a Resort Hotel, July 2015 to August 2017
 
 ---
@@ -21,10 +21,28 @@ Cancelled bookings leave rooms empty and revenue uncertain. StaySense answers th
 
 ## Project Workflow
 
-1. **Clean the data** in Python/Pandas (`notebooks/01_cleaning.ipynb`)
+1. **Clean the data** in Python/Pandas (`notebook/01_cleaning.ipynb`)
 2. **Load** the cleaned data into MySQL (`sql/01_create_table.sql`)
 3. **Analyze** with SQL (`sql/staysense_analysis.sql`)
-4. **Visualize** in Power BI (in progress)
+4. **Visualize** in Power BI (`dashboard/StaySense.pbix`), connected to the MySQL table
+
+---
+
+## Dashboard Preview
+
+**Page 1: Overview**
+
+![Overview](dashboard/page1_overview.png)
+
+**Page 2: LeakGuard and LeadLens**
+
+![LeakGuard and LeadLens](dashboard/page2_leakguard_leadlens.png)
+
+**Page 3: OverbookIQ**
+
+![OverbookIQ](dashboard/page3_overbookiq.png)
+
+The dashboard uses five measures: Total Bookings, Cancellation Rate, Revenue at Risk, Pct Revenue at Risk and Suggested Overbook Pct. Revenue measures exclude bookings with zero ADR or zero nights, matching the SQL queries.
 
 ---
 
@@ -84,21 +102,22 @@ Based on bookings with a usable rate (ADR > 0) and at least one night.
 | 181-365 | 11,192 | 39.7% |
 | 365+ | 564 | 40.8% (small sample) |
 
-The biggest jump is between 0-30 and 31-90 days. The pattern holds **within both Online TA and other segments**, so lead time is a signal on its own, not just a segment effect:
+The biggest jump is between 0-30 and 31-90 days. The pattern holds **within both Online TA and other segments**, so lead time is a signal on its own, not just a segment effect. Online TA cancels about twice as often as other segments at every lead time:
 
 | Lead time (days) | Online TA | Other segments |
 |---|---|---|
 | 0-30 | 21.4% | 10.9% |
 | 31-90 | 39.0% | 17.8% |
 | 91-180 | 43.4% | 19.6% |
-| 181-365 | 51.7% | 24.1% |
+| 181+ | 51.8% | 25.7% |
 
-Online TA cancels about twice as often as other segments at every lead time. (The Online TA 365+ group has only 15 bookings and is not interpreted.)
+*The dashboard merges the 365+ bucket into 181+, because 365+ has only 564 bookings (15 for Online TA) and would give unreliable rates.*
 
 ### OverbookIQ: monthly cancellation and suggested buffer
 
 - **Resort Hotel is strongly seasonal:** cancellation rate ranges from **14.0% in January to 32.4% in August** (winter months about 14-19%, June to August about 30-32%).
 - **City Hotel is steadier:** 25-34% across the year, highest in April (34.4%) and July (33.1%).
+- Overall, City Hotel has a higher cancellation rate than Resort Hotel (30.1% vs 23.5%).
 - A single overbooking buffer would not suit the Resort Hotel; a buffer that varies by month would. The suggested buffer ranges from about 7% (January) to 16% (August) for the Resort and 13-17% for the City Hotel.
 
 The suggested buffer is **50% of the monthly cancellation rate**. This safety factor is an assumption, not a validated model.
@@ -121,6 +140,7 @@ The suggested buffer is **50% of the monthly cancellation rate**. This safety fa
 - Zero-ADR bookings (1,960 before deduplication) and zero-night bookings (591 in the cleaned data) are excluded from revenue figures, so revenue figures are conservative.
 - The data spans July 2015 to August 2017, so July and August include three years of data and other months two. Monthly results pool years.
 - There is no hotel capacity or compensation-cost data, so the overbooking buffer is a rule of thumb, not a recommendation to over-sell by that amount.
+- Slicers on the Overview page filter that page only.
 
 ---
 
@@ -128,27 +148,34 @@ The suggested buffer is **50% of the monthly cancellation rate**. This safety fa
 
 ```
 StaySense/
+├── dashboard/
+│   ├── StaySense.pbix
+│   ├── page1_overview.png
+│   ├── page2_leakguard_leadlens.png
+│   └── page3_overbookiq.png
 ├── data/
 │   └── hotel_bookings_clean.csv
-├── notebooks/
+├── notebook/
 │   └── 01_cleaning.ipynb
 ├── sql/
 │   ├── 01_create_table.sql
 │   └── staysense_analysis.sql
-├── dashboard/              # Power BI file and screenshots (in progress)
 └── README.md
 ```
 
 ## How to Reproduce
 
-1. Download `hotel_bookings.csv` from Kaggle and place it in `data/`.
-2. Run `notebooks/01_cleaning.ipynb` to produce `data/hotel_bookings_clean.csv`.
+1. Download `hotel_bookings.csv` from Kaggle and place it in `data/` (not needed if you only use the cleaned file).
+2. Run `notebook/01_cleaning.ipynb` to produce `data/hotel_bookings_clean.csv`.
 3. In MySQL, run `sql/01_create_table.sql`, then import the cleaned CSV into the `bookings` table.
 4. Run the queries in `sql/staysense_analysis.sql`.
+5. Open `dashboard/StaySense.pbix` in Power BI Desktop (it reads from the MySQL `staysense` database on localhost).
 
-## Next Steps
+## Possible Extensions
 
-- Build the 3-page Power BI dashboard (overview, LeakGuard + LeadLens, OverbookIQ)
+- Sync the slicers across all dashboard pages
+- Test other safety factors for the overbooking buffer and compare them
+- Build a booking-level cancellation prediction model (not done in this project)
 
 ---
 

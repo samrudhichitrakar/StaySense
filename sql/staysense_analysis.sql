@@ -29,8 +29,9 @@ SELECT market_segment,
        ROUND(100 * SUM(CASE WHEN is_canceled = 1 THEN total_revenue ELSE 0 END)
              / SUM(total_revenue), 1) AS pct_at_risk
 FROM bookings
-WHERE adr > 0 AND total_nights > 0
+WHERE adr > 0 AND total_nights > 0gd
 GROUP BY market_segment
+
 ORDER BY revenue_at_risk DESC;
 
 -- ========== LeadLens: cancellation rate by lead time ==========
